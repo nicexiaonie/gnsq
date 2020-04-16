@@ -35,6 +35,8 @@ type Consumer struct {
 
 	// 实时统计累计消息处理量
 	FinishCount int64
+
+	debug bool
 	// 消息处理数量超过时退出
 	debugNum int64
 }
@@ -48,9 +50,10 @@ func NewConsumer(c *Config) (*Consumer, error) {
 	}
 
 	r := Consumer{
-		Config:  c,
-		debugNum:  -1,
-		Connect: make(map[int]*nsq.Consumer),
+		Config:   c,
+		debug:    false,
+		debugNum: 0,
+		Connect:  make(map[int]*nsq.Consumer),
 	}
 
 	r.init()
@@ -75,6 +78,7 @@ func (current *Consumer) init() {
 }
 
 func (current *Consumer) Debug(n int64) {
+	current.debug = true
 	current.debugNum = n
 	current.Config.MaxInFlight = 1
 	current.Config.MaxConnectNum = 1
@@ -118,7 +122,7 @@ func (current *Consumer) Call(msg *nsq.Message) error {
 		msg.Finish()
 	}
 	atomic.AddInt64(&current.FinishCount, 1)
-	if current.FinishCount >= current.debugNum {
+	if current.debug && current.FinishCount >= current.debugNum {
 		_ = current.Stop()
 	}
 	return nil
