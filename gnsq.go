@@ -1,8 +1,8 @@
 package gnsq
 
 import (
-	"fmt"
 	"github.com/nsqio/go-nsq"
+	"sync/atomic"
 	"time"
 )
 
@@ -32,6 +32,11 @@ type Consumer struct {
 	ConnectNum int
 	// 保存nsq连接
 	Connect map[int]*nsq.Consumer
+
+	// 实时统计累计消息处理量
+	FinishCount int64
+	// 消息处理数量超过时退出
+	debugNum int64
 }
 
 func NewConsumer(c *Config) (*Consumer, error) {
@@ -44,6 +49,7 @@ func NewConsumer(c *Config) (*Consumer, error) {
 
 	r := Consumer{
 		Config:  c,
+		debugNum:  -1,
 		Connect: make(map[int]*nsq.Consumer),
 	}
 
@@ -58,14 +64,21 @@ func (current *Consumer) init() {
 			time.Sleep(time.Second)
 			// step1 开始自动统计实时连接数
 			current.ConnectNum = len(current.Connect)
-			fmt.Printf("实时连接数： %d \n", current.ConnectNum)
-			fmt.Printf("配置连接数： %d \n", current.Config.MaxConnectNum)
+			//fmt.Printf("实时连接数： %d \n", current.ConnectNum)
+			//fmt.Printf("配置连接数： %d \n", current.Config.MaxConnectNum)
 
 			// step2 开始弹性伸缩
 			current.ess()
 		}
 	}()
 
+}
+
+func (current *Consumer) Debug(n int64) {
+	current.debugNum = n
+	current.Config.MaxInFlight = 1
+	current.Config.MaxConnectNum = 1
+	_ = current.Start()
 }
 
 func (current *Consumer) Start() error {
@@ -103,6 +116,10 @@ func (current *Consumer) Call(msg *nsq.Message) error {
 	err := current.Config.CallFunc(msg, current.Config.CallContext)
 	if err == nil {
 		msg.Finish()
+	}
+	atomic.AddInt64(&current.FinishCount, 1)
+	if current.FinishCount >= current.debugNum {
+		_ = current.Stop()
 	}
 	return nil
 }
