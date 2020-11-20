@@ -118,13 +118,15 @@ func (current *Consumer) new() (*nsq.Consumer, error) {
 }
 func (current *Consumer) Call(msg *nsq.Message) error {
 	err := current.Config.CallFunc(msg, current.Config.CallContext)
-	if err == nil {
-		msg.Finish()
-	}
+
 	atomic.AddInt64(&current.FinishCount, 1)
 	if current.debug && current.FinishCount >= current.debugNum {
 		_ = current.Stop()
 	}
+	if err != nil {
+		return err
+	}
+	msg.Finish()
 	return nil
 }
 
