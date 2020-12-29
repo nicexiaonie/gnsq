@@ -12,7 +12,7 @@ type Producer struct {
 	Producer *nsq.Producer
 }
 
-func NewProducer(config Config) (*Producer, error) {
+func NewProducer(config *Config) (*Producer, error) {
 	cf := nsq.NewConfig()
 
 	p := Producer{
