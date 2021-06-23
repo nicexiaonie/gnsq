@@ -1,6 +1,7 @@
 package gnsq
 
 import (
+	"fmt"
 	"github.com/nsqio/go-nsq"
 	"sync/atomic"
 	"time"
@@ -31,7 +32,7 @@ type Consumer struct {
 	// 实际存活的工作连接数
 	ConnectNum int
 	// 保存nsq连接
-	Connect map[int]*nsq.Consumer
+	Connect []*nsq.Consumer
 
 	// 实时统计累计消息处理量
 	FinishCount int64
@@ -53,7 +54,6 @@ func NewConsumer(c *Config) (*Consumer, error) {
 		Config:   c,
 		debug:    false,
 		debugNum: 0,
-		Connect:  make(map[int]*nsq.Consumer),
 	}
 
 	r.init()
@@ -64,14 +64,16 @@ func (current *Consumer) init() {
 	//
 	go func() {
 		for {
-			time.Sleep(time.Second)
+			time.Sleep(time.Second * 1)
 			// step1 开始自动统计实时连接数
 			current.ConnectNum = len(current.Connect)
 			//fmt.Printf("实时连接数： %d \n", current.ConnectNum)
 			//fmt.Printf("配置连接数： %d \n", current.Config.MaxConnectNum)
 
 			// step2 开始弹性伸缩
-			current.ess()
+			if current.Config.AutoESS {
+				current.ess()
+			}
 		}
 	}()
 
@@ -86,8 +88,9 @@ func (current *Consumer) Debug(n int64) {
 }
 
 func (current *Consumer) Start() error {
-	for i := 1; i <= current.Config.MaxConnectNum; i++ {
-		current.Connect[i], _ = current.new()
+	for i := 0; i < current.Config.MaxConnectNum; i++ {
+		consumer, _ := current.new()
+		current.Connect = append(current.Connect, consumer)
 	}
 	return nil
 }
@@ -99,7 +102,7 @@ func (current *Consumer) ReStart() error {
 func (current *Consumer) Stop() error {
 	for k, consumer := range current.Connect {
 		consumer.Stop()
-		delete(current.Connect, k)
+		current.Connect = append(current.Connect[:k], current.Connect[k+1:]...)
 	}
 	return nil
 }
@@ -132,27 +135,35 @@ func (current *Consumer) Call(msg *nsq.Message) error {
 
 // 弹性伸缩
 func (current *Consumer) ess() {
+	defer func() {
 
-	for {
-		//fmt.Printf("ess. len:%d \n", len(current.Connect))
-		//fmt.Printf("ess. %d \n", current.Config.MaxConnectNum)
-		if current.Config.AutoESS && len(current.Connect) != current.Config.MaxConnectNum {
-			i := 0
-			for k, _ := range current.Connect {
-				i = k
-			}
-			i++
-			if len(current.Connect) > current.Config.MaxConnectNum {
+	}()
+	length := 0
+	i := 0
+	for k, _ := range current.Connect {
+		length++
+		i = k
+	}
+
+	fmt.Println(fmt.Sprintf("%d, %d", length, current.Config.MaxConnectNum))
+	if length != current.Config.MaxConnectNum {
+		fc := current.Config.MaxConnectNum - length
+		for {
+			if fc == 0 {
+				break
+			} else if fc > 0 {
+				fc--
+				i++
+				consumer, _ := current.new()
+				current.Connect = append(current.Connect, consumer)
+			} else if fc < 0 {
+				fc++
 				current.Connect[i].Stop()
-				delete(current.Connect, i)
-			} else {
-				current.Connect[i], _ = current.new()
+				current.Connect = append(current.Connect[:i], current.Connect[i+1:]...)
+				i--
 			}
-			//fmt.Printf("ddd  ess. len:%d \n", len(current.Connect))
-			//time.Sleep(time.Second*3)
-		} else {
-			break
 		}
+		time.Sleep(time.Second * 1)
 	}
 
 }
