@@ -139,13 +139,13 @@ func (current *Consumer) ess() {
 
 	}()
 	length := 0
-	i := 0
+	i := -1
 	for k, _ := range current.Connect {
 		length++
 		i = k
 	}
 
-	fmt.Println(fmt.Sprintf("%d, %d", length, current.Config.MaxConnectNum))
+	fmt.Println(fmt.Sprintf("gnsq.Info length:%d, MaxConnectNum:%d", length, current.Config.MaxConnectNum))
 	if length != current.Config.MaxConnectNum {
 		fc := current.Config.MaxConnectNum - length
 		for {

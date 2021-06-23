@@ -30,26 +30,16 @@ func testDebug()  {
 	}
 
 
-	fmt.Println(config)
 	consumer, _ := gnsq.NewConsumer(&config)
 	consumer.Start()
 	time.Sleep(time.Second * 1)
-	config.MaxConnectNum = 10
-	time.Sleep(time.Second * 5)
 	config.MaxConnectNum = 1
-	time.Sleep(time.Second * 5)
-	config.MaxConnectNum = 200
-	time.Sleep(time.Second * 5)
-	config.MaxConnectNum = 1
-	time.Sleep(time.Second * 5)
-	config.MaxConnectNum = 130
-	time.Sleep(time.Second * 5)
-	config.MaxConnectNum = 10
+
 	go func() {
 		for {
-			time.Sleep(time.Second)
-			fmt.Printf("监控连接数： ConnectNum:%d, len:%d \n", consumer.ConnectNum, len(consumer.Connect))
-			fmt.Printf("监控消息数： %d \n", consumer.FinishCount)
+			//time.Sleep(time.Second)
+			//fmt.Printf("监控连接数： ConnectNum:%d, len:%d \n", consumer.ConnectNum, len(consumer.Connect))
+			//fmt.Printf("监控消息数： %d \n", consumer.FinishCount)
 		}
 	}()
 
