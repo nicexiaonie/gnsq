@@ -1,7 +1,6 @@
 package gnsq
 
 import (
-	"fmt"
 	"github.com/nsqio/go-nsq"
 	"sync/atomic"
 	"time"
@@ -145,9 +144,7 @@ func (current *Consumer) ess() {
 		i = k
 	}
 
-	if current.debug{
-		fmt.Println(fmt.Sprintf("gnsq.Info flen:%d, MaxConnectNum:%d", length, current.Config.MaxConnectNum))
-	}
+	//fmt.Println(fmt.Sprintf("gnsq.Info flen:%d, MaxConnectNum:%d", length, current.Config.MaxConnectNum))
 	if length != current.Config.MaxConnectNum {
 		fc := current.Config.MaxConnectNum - length
 		for {
