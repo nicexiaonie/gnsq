@@ -145,7 +145,9 @@ func (current *Consumer) ess() {
 		i = k
 	}
 
-	fmt.Println(fmt.Sprintf("gnsq.Info length:%d, MaxConnectNum:%d", length, current.Config.MaxConnectNum))
+	if current.debug{
+		fmt.Println(fmt.Sprintf("gnsq.Info flen:%d, MaxConnectNum:%d", length, current.Config.MaxConnectNum))
+	}
 	if length != current.Config.MaxConnectNum {
 		fc := current.Config.MaxConnectNum - length
 		for {
