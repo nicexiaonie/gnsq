@@ -66,11 +66,8 @@ func (current *Consumer) init() {
 			time.Sleep(time.Second * 1)
 			// step1 开始自动统计实时连接数
 			current.ConnectNum = len(current.Connect)
-			//fmt.Printf("实时连接数： %d \n", current.ConnectNum)
-			//fmt.Printf("配置连接数： %d \n", current.Config.MaxConnectNum)
-
 			// step2 开始弹性伸缩
-			if current.Config.AutoESS {
+			if !current.debug &&current.Config.AutoESS {
 				current.ess()
 			}
 		}
