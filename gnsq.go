@@ -39,6 +39,8 @@ type Consumer struct {
 	debug bool
 	// 消息处理数量超过时退出
 	debugNum int64
+
+	running bool
 }
 
 func NewConsumer(c *Config) (*Consumer, error) {
@@ -53,6 +55,7 @@ func NewConsumer(c *Config) (*Consumer, error) {
 		Config:   c,
 		debug:    false,
 		debugNum: 0,
+		running: false,
 	}
 
 	r.init()
@@ -67,7 +70,7 @@ func (current *Consumer) init() {
 			// step1 开始自动统计实时连接数
 			current.ConnectNum = len(current.Connect)
 			// step2 开始弹性伸缩
-			if !current.debug &&current.Config.AutoESS {
+			if current.running && !current.debug &&current.Config.AutoESS {
 				current.ess()
 			}
 		}
@@ -88,14 +91,18 @@ func (current *Consumer) Start() error {
 		consumer, _ := current.new()
 		current.Connect = append(current.Connect, consumer)
 	}
+	current.running = true
 	return nil
 }
 func (current *Consumer) ReStart() error {
+	current.running = false
 	_ = current.Stop()
 	_ = current.Start()
+	current.running = true
 	return nil
 }
 func (current *Consumer) Stop() error {
+	current.running = false
 	for k, consumer := range current.Connect {
 		consumer.Stop()
 		current.Connect = append(current.Connect[:k], current.Connect[k+1:]...)
