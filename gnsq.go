@@ -55,7 +55,7 @@ func NewConsumer(c *Config) (*Consumer, error) {
 		Config:   c,
 		debug:    false,
 		debugNum: 0,
-		running: false,
+		running:  false,
 	}
 
 	r.init()
@@ -70,7 +70,7 @@ func (current *Consumer) init() {
 			// step1 开始自动统计实时连接数
 			current.ConnectNum = len(current.Connect)
 			// step2 开始弹性伸缩
-			if current.running && !current.debug &&current.Config.AutoESS {
+			if current.running && !current.debug && current.Config.AutoESS {
 				current.ess()
 			}
 		}
@@ -103,10 +103,10 @@ func (current *Consumer) ReStart() error {
 }
 func (current *Consumer) Stop() error {
 	current.running = false
-	for k, consumer := range current.Connect {
+	for _, consumer := range current.Connect {
 		consumer.Stop()
-		current.Connect = append(current.Connect[:k], current.Connect[k+1:]...)
 	}
+	current.Connect = []*nsq.Consumer{}
 	return nil
 }
 func (current *Consumer) new() (*nsq.Consumer, error) {
